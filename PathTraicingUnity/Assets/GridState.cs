@@ -13,7 +13,10 @@ public class GridState : MonoBehaviour
     private int[,] State = new int[1, 1];
 
 
-    // Update is called once per frame
+    void Start()
+    {
+        InitCam();
+    }
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space)) TotalInit();
@@ -70,15 +73,16 @@ public class GridState : MonoBehaviour
                 float PosY;
                 if (cptx % 2 == 0)
                 {
-                    PosX = 0;
-                    PosY = 0;
+                    PosX = ((cptx%Size) * 7.7f);
+                    PosY = (cpty * 8.8f);
                 }
                 else
                 {
-                    PosX = 0;
-                    PosY = 0;
+                    PosX = ((cptx % Size) * 7.7f);
+                    PosY = (cpty * 8.8f) + 4.4f;
                 }
                 Go.transform.position = new Vector3(PosX, PosY, 0);
+                /*
                 switch (State[cptx, cpty])
                 {
                     case 0:
@@ -102,6 +106,8 @@ public class GridState : MonoBehaviour
                         Go.GetComponent<Renderer>().material = Lac;
                         break;
                 }
+                */
+                Go.SetActive(true);
             }
         }
     }
@@ -111,6 +117,6 @@ public class GridState : MonoBehaviour
     }
     void InitCam()
     {
-
+        GameObject.Find("MainCamera").transform.position = new Vector3(Size/2 * 7.7f, Size / 2 * 8.8f, -(Size) * 10);
     }
 }
