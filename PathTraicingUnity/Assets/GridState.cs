@@ -5,7 +5,7 @@ using UnityEngine;
 public class GridState : MonoBehaviour
 {
     [SerializeField]
-    private int Size = 20;
+    private int Size = 24;
     [SerializeField]
     private Transform Field = null;
     [SerializeField]
@@ -32,7 +32,6 @@ public class GridState : MonoBehaviour
         // 3 = Foret
         // 4 = Plateau
         // 5 = Montagne
-
         for (int cptx = 0; cptx < Size; cptx++)
         {
             for (int cpty = 0; cpty < Size; cpty++)
@@ -42,7 +41,6 @@ public class GridState : MonoBehaviour
                 else State[cptx, cpty] = Random.Range(1, 6);
             }
         }
-
     }
     void DeleteState()
     {
@@ -63,8 +61,49 @@ public class GridState : MonoBehaviour
         Material Plateau = Resources.Load("/Hexagon/Plateau", typeof(Material)) as Material;
         Material Ocean = Resources.Load("/Hexagon/Ocean", typeof(Material)) as Material;
         Material Lac = Resources.Load("/Hexagon/Lac", typeof(Material)) as Material;
-
-
+        for (int cptx = 0; cptx < Size; cptx++)
+        {
+            for (int cpty = 0; cpty < Size; cpty++)
+            {
+                GameObject Go = Instantiate(PrefabHexagon);
+                float PosX;
+                float PosY;
+                if (cptx % 2 == 0)
+                {
+                    PosX = 0;
+                    PosY = 0;
+                }
+                else
+                {
+                    PosX = 0;
+                    PosY = 0;
+                }
+                Go.transform.position = new Vector3(PosX, PosY, 0);
+                switch (State[cptx, cpty])
+                {
+                    case 0:
+                        Go.GetComponent<Renderer>().material = Ocean;
+                        break;
+                    case 1:
+                        Go.GetComponent<Renderer>().material = Plain;
+                        break;
+                    case 2:
+                        Go.GetComponent<Renderer>().material = Forest;
+                        break;
+                    case 3:
+                        Go.GetComponent<Renderer>().material = Plateau;
+                        Go.transform.localScale = new Vector3(Go.transform.localScale.x, Go.transform.localScale.y, Go.transform.localScale.z * 1.3f);
+                        break;
+                    case 4:
+                        Go.GetComponent<Renderer>().material = Mountain;
+                        Go.transform.localScale = new Vector3(Go.transform.localScale.x, Go.transform.localScale.y, Go.transform.localScale.z * 1.6f);
+                        break;
+                    case 5:
+                        Go.GetComponent<Renderer>().material = Lac;
+                        break;
+                }
+            }
+        }
     }
     void DeleteField()
     {
