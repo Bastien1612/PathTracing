@@ -20,6 +20,8 @@ public class GridState : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space)) TotalInit();
+        if (Input.GetKeyDown(KeyCode.W)) this.GetComponent<PathScript>().InitGame();
+        if (Input.GetKeyDown(KeyCode.X)) this.GetComponent<PathScript>().LaunchGame();
     }
     void TotalInit()
     {
@@ -83,7 +85,6 @@ public class GridState : MonoBehaviour
                 }
                 Go.transform.position = new Vector3(PosX, PosY, 0);
                 Go.transform.SetParent(Field);
-                if (cptx == 0 || cpty == 0 || cptx == Size - 1 || cpty == Size - 1) Debug.Log("State[" + cptx + ", " + cpty + "] : " + State[cptx, cpty]);
                 switch (State[cptx, cpty])
                 {
                     case 0:
@@ -117,6 +118,24 @@ public class GridState : MonoBehaviour
     }
     void InitCam()
     {
-        GameObject.Find("MainCamera").transform.position = new Vector3(Size / 2 * 7.7f, Size / 2 * 8.8f, -(Size) * 7.7f);
+        GameObject.Find("MainCamera").transform.position = new Vector3(Size / 2 * 7.7f, Size / 2 * 8.8f, (Size) * 8f);
+    }
+    public int GetStateValue(int x, int y)
+    {
+        return State[x, y];
+    }
+    public int GetSize()
+    {
+        return Size;
+    }
+    public void SetFieldParent(GameObject Go)
+    {
+        Go.transform.SetParent(Field);
+    }
+    public float GetScaleZ(int x, int y)
+    {
+        if (State[x, y] == 4) return 1.3f;
+        else if (State[x, y] == 5) return 1.6f;
+        else return 1.0f;
     }
 }
