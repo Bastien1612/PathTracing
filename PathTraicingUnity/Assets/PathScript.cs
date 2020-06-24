@@ -125,33 +125,47 @@ public class PathScript : MonoBehaviour
             }
         }
         if (AllCost.Count < 1)
-        {
-            Debug.Log("No Path Find !");
-            return;
-        }
-        // Recherche cout le plus bas
-        int indexmax = 0;
-        for (int cpt = 0; cpt < AllCost.Count; cpt++)
-        {
-            if (AllCost[cpt] < AllCost[indexmax]) indexmax = cpt;
-        }
-        if (ActualBestScore > AllCost[indexmax] || ActualBestScore < 0)
-        {
-            ActualBestScore = AllCost[indexmax];
-            ActualBestPath = AllPath[indexmax];
-            // Affichage
-            Debug.Log("Cout : " + AllCost[indexmax]);
-            foreach (Vector2Int Vec in AllPath[indexmax])
+        {            
+            if(ActualBestScore < 0)
             {
-                InitPathSphere(Vec);
+                Debug.Log("No Path Find !");
+            }
+            else
+            {
+                // Affichage
+                foreach (Vector2Int Vec in ActualBestPath)
+                {
+                    InitPathSphere(Vec);
+                }
             }
         }
         else
         {
-            // Affichage
-            foreach (Vector2Int Vec in ActualBestPath)
+            // Recherche cout le plus bas
+            int indexmax = 0;
+            for (int cpt = 0; cpt < AllCost.Count; cpt++)
             {
-                InitPathSphere(Vec);
+                if (AllCost[cpt] < AllCost[indexmax]) indexmax = cpt;
+            }
+
+            if (ActualBestScore > AllCost[indexmax] || ActualBestScore < 0)
+            {
+                ActualBestScore = AllCost[indexmax];
+                ActualBestPath = AllPath[indexmax];
+                // Affichage
+                Debug.Log("Cout : " + AllCost[indexmax]);
+                foreach (Vector2Int Vec in AllPath[indexmax])
+                {
+                    InitPathSphere(Vec);
+                }
+            }
+            else
+            {
+                // Affichage
+                foreach (Vector2Int Vec in ActualBestPath)
+                {
+                    InitPathSphere(Vec);
+                }
             }
         }
     }
@@ -251,160 +265,54 @@ public class PathScript : MonoBehaviour
         {
             if (V2e.y > V2s.y)
             {
-                if (V2e.x > V2s.x)
-                {
-                    // Voisin Nord
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
-                    // Voisin Nord Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                    // Voisin Sud Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
-                }
-                else if (V2e.x < V2s.x)
-                {
-                    // Voisin Nord
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
-                    // Voisin Nord Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                    // Voisin Sud Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
-                }
-                else
-                {
-                    // Voisin Nord
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
-                    // Voisin Nord Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                    // Voisin Nord Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                }
+                // Voisin Nord
+                V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
             }
             else if (V2e.y < V2s.y)
             {
-                if (V2e.x > V2s.x)
-                {
-                    // Voisin Sud
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
-                    // Voisin Nord Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                    // Voisin Sud Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
-                }
-                else if (V2e.x < V2s.x)
-                {
-                    // Voisin Sud
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
-                    // Voisin Nord Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                    // Voisin Sud Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
-                }
-                else
-                {
-                    // Voisin Sud
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
-                    // Voisin Sud Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
-                    // Voisin Sud Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
-                }
+                // Voisin Sud
+                V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
             }
-            else
+            if (V2e.x > V2s.x)
             {
-                if (V2e.x > V2s.x)
-                {
-                    // Voisin Nord Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                    // Voisin Sud Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
-                }
-                else if (V2e.x < V2s.x)
-                {
-                    // Voisin Nord Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                    // Voisin Sud Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
-                }
+                // Voisin Nord Ouest
+                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                // Voisin Sud Ouest
+                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+            }
+            else if (V2e.x < V2s.x)
+            {
+                // Voisin Nord Est
+                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                // Voisin Sud Est
+                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
             }
         }
         else
         {
             if (V2e.y > V2s.y)
             {
-                if (V2e.x > V2s.x)
-                {
-                    // Voisin Nord
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
-                    // Voisin Nord Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
-                    // Voisin Sud Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                }
-                else if (V2e.x < V2s.x)
-                {
-                    // Voisin Nord
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
-                    // Voisin Nord Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
-                    // Voisin Sud Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                }
-                else
-                {
-                    // Voisin Nord
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
-                    // Voisin Nord Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
-                    // Voisin Nord Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
-                }
+                // Voisin Nord
+                V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
             }
             else if (V2e.y < V2s.y)
             {
-                if (V2e.x > V2s.x)
-                {
-                    // Voisin Sud
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
-                    // Voisin Nord Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
-                    // Voisin Sud Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                }
-                else if (V2e.x < V2s.x)
-                {
-                    // Voisin Sud
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
-                    // Voisin Nord Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
-                    // Voisin Sud Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                }
-                else
-                {
-                    // Voisin Sud
-                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
-                    // Voisin Sud Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                    // Voisin Sud Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                }
+                // Voisin Sud
+                V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
             }
-            else
+            if (V2e.x > V2s.x)
             {
-                if (V2e.x > V2s.x)
-                {
-                    // Voisin Nord Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
-                    // Voisin Sud Ouest
-                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                }
-                else if (V2e.x < V2s.x)
-                {
-                    // Voisin Nord Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
-                    // Voisin Sud Est
-                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                }
+                // Voisin Nord Ouest
+                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
+                // Voisin Sud Ouest
+                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+            }
+            else if (V2e.x < V2s.x)
+            {
+                // Voisin Nord Est
+                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
+                // Voisin Sud Est
+                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
             }
         }
         return V2t;
@@ -626,10 +534,10 @@ public class PathScript : MonoBehaviour
                 best = GetCout(LV2[cpt]);
                 bestid = LV2[cpt];
             }
-            else if(best == GetCout(LV2[cpt]))
+            else if (best == GetCout(LV2[cpt]))
             {
                 int rnd = Random.Range(0, 2);
-                if(rnd == 0)
+                if (rnd == 0)
                 {
                     best = GetCout(LV2[cpt]);
                     bestid = LV2[cpt];
