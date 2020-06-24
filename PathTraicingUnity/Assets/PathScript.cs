@@ -78,6 +78,7 @@ public class PathScript : MonoBehaviour
         List<List<Vector2Int>> AllPath = new List<List<Vector2Int>>();
         List<int> AllCost = new List<int>();
         Debug.Log("A");
+        
         for (int cpt = 0; cpt < Iteration; cpt++)
         {
             List<Vector2Int> Path = new List<Vector2Int>();
@@ -85,14 +86,14 @@ public class PathScript : MonoBehaviour
             bool Success = false;
 
             //Vector2Int ActualPos = VerifyVoisin(Start, Success);
-            Vector2Int ActualPos = VerifyBestVoisin(Start, End, Success);
+            Vector2Int ActualPos = VerifyBestVoisin(Start, End, ref Success);
             Cost += GetCout(ActualPos);
             for (int cptb = 0; cptb < MaxParcours; cptb++)
             {
                 if (Success) break;
                 Path.Add(ActualPos);
                 //ActualPos = VerifyVoisin(ActualPos, Success);
-                ActualPos = VerifyBestVoisin(ActualPos, End, Success);
+                ActualPos = VerifyBestVoisin(ActualPos, End, ref Success);
                 Cost += GetCout(ActualPos);
             }
             if (Success)
@@ -101,7 +102,7 @@ public class PathScript : MonoBehaviour
                 AllPath.Add(Path);
                 AllCost.Add(Cost);
             }
-        }
+        }        
         Debug.Log("B");
         if (AllCost.Count < 1)
         {
@@ -138,7 +139,7 @@ public class PathScript : MonoBehaviour
         while (GetCout(V2) == 99999) V2b = Voisin[Random.Range(0, Voisin.Count)];
         return V2b;
     }
-    Vector2Int VerifyBestVoisin(Vector2Int V2, Vector2Int V2e, bool suc)
+    Vector2Int VerifyBestVoisin(Vector2Int V2, Vector2Int V2e, ref bool suc)
     {
         List<Vector2Int> Voisin = GetBestVoisins(V2, V2e);
         foreach (Vector2Int V2a in Voisin)
