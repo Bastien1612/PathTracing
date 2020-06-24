@@ -29,7 +29,6 @@ public class GridState : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.X) && CanLaunch)
         {
             this.GetComponent<PathScript>().LaunchGame();
-            CanLaunch = false;
         }
     }
     void TotalInit()
@@ -41,6 +40,7 @@ public class GridState : MonoBehaviour
     void InitState()
     {
         DeleteState();
+        this.GetComponent<PathScript>().DeleteAll();
         // 0 = Océan
         // 1 = Lac
         // 2 = Plaine

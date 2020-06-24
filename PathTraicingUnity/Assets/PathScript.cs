@@ -7,11 +7,24 @@ public class PathScript : MonoBehaviour
     private Vector2Int Start = new Vector2Int(2, 2);
     private Vector2Int End = new Vector2Int(4, 4);
     public int Iteration = 100;
-    public int MaxParcours = 150;
+    [SerializeField]
+    private Transform Spheres = null;
+    [SerializeField]
+    private Transform SpheresPath = null;
+    public bool BestV = false;
+    public bool SemiBestV = false;
 
+    public bool BestPick = false;
+    public bool TwoBestPick = false;
+    public bool RemoveWorstPick = false;
+
+    private int ActualBestScore = -600;
+    private List<Vector2Int> ActualBestPath = new List<Vector2Int>();
 
     public void InitGame()
     {
+        DeleteAll();
+
         int Size = this.GetComponent<GridState>().GetSize();
         if (Size < 10)
         {
@@ -55,7 +68,7 @@ public class PathScript : MonoBehaviour
         }
         GoStart.transform.position = new Vector3(PosX, PosY, 10 * this.GetComponent<GridState>().GetScaleZ(Start));
         GoStart.transform.localScale = new Vector3(5, 5, 5);
-        this.GetComponent<GridState>().SetFieldParent(GoStart);
+        GoStart.transform.SetParent(Spheres);
         GameObject GoEnd = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         GoEnd.GetComponent<MeshRenderer>().material = Resources.Load("End", typeof(Material)) as Material;
         if (End.x % 2 == 0)
@@ -70,58 +83,76 @@ public class PathScript : MonoBehaviour
         }
         GoEnd.transform.position = new Vector3(PosX, PosY, 10 * this.GetComponent<GridState>().GetScaleZ(End));
         GoEnd.transform.localScale = new Vector3(5, 5, 5);
-        this.GetComponent<GridState>().SetFieldParent(GoEnd);
+        GoEnd.transform.SetParent(Spheres);
     }
     public void LaunchGame()
     {
         // Creations chemins
+        DeletePaths();
         List<List<Vector2Int>> AllPath = new List<List<Vector2Int>>();
         List<int> AllCost = new List<int>();
-        Debug.Log("A");
-        
+        int coutminend = 99999;
+        int MaxParcours = this.GetComponent<GridState>().GetSize() * this.GetComponent<GridState>().GetSize();
+        List<Vector2Int> Path = new List<Vector2Int>();
+        int Cost = 0;
+        bool Success = false;
+
         for (int cpt = 0; cpt < Iteration; cpt++)
         {
-            List<Vector2Int> Path = new List<Vector2Int>();
-            int Cost = 0;
-            bool Success = false;
+            Path = new List<Vector2Int>();
+            Cost = 0;
+            Success = false;
 
-            //Vector2Int ActualPos = VerifyVoisin(Start, Success);
-            Vector2Int ActualPos = VerifyBestVoisin(Start, End, ref Success);
+            Vector2Int ActualPos = VerifyVoisin(Start, Success);
+            if (BestV) ActualPos = VerifyBestVoisin(Start, End, ref Success);
+            else if (SemiBestV) ActualPos = VerifySemiBestVoisin(Start, End, ref Success);
             Cost += GetCout(ActualPos);
             for (int cptb = 0; cptb < MaxParcours; cptb++)
             {
                 if (Success) break;
                 Path.Add(ActualPos);
-                //ActualPos = VerifyVoisin(ActualPos, Success);
-                ActualPos = VerifyBestVoisin(ActualPos, End, ref Success);
+                if (BestV) ActualPos = VerifyBestVoisin(ActualPos, End, ref Success);
+                else if (SemiBestV) ActualPos = VerifySemiBestVoisin(ActualPos, End, ref Success);
+                else ActualPos = VerifyVoisin(ActualPos, Success);
                 Cost += GetCout(ActualPos);
+                if (coutminend <= Cost) break;
             }
             if (Success)
             {
-                Debug.Log("a succes");
                 AllPath.Add(Path);
                 AllCost.Add(Cost);
+                if (Cost < coutminend) coutminend = Cost;
             }
-        }        
-        Debug.Log("B");
+        }
         if (AllCost.Count < 1)
         {
-            Debug.Log("error count");
+            Debug.Log("No Path Find !");
             return;
         }
         // Recherche cout le plus bas
-        Debug.Log("C");
         int indexmax = 0;
         for (int cpt = 0; cpt < AllCost.Count; cpt++)
         {
             if (AllCost[cpt] < AllCost[indexmax]) indexmax = cpt;
         }
-        // Affichage
-        Debug.Log("Cout : " + AllCost[indexmax]);
-        Debug.Log("D");
-        foreach (Vector2Int Vec in AllPath[indexmax])
+        if (ActualBestScore > AllCost[indexmax] || ActualBestScore < 0)
         {
-            InitPathSphere(Vec);
+            ActualBestScore = AllCost[indexmax];
+            ActualBestPath = AllPath[indexmax];
+            // Affichage
+            Debug.Log("Cout : " + AllCost[indexmax]);
+            foreach (Vector2Int Vec in AllPath[indexmax])
+            {
+                InitPathSphere(Vec);
+            }
+        }
+        else
+        {
+            // Affichage
+            foreach (Vector2Int Vec in ActualBestPath)
+            {
+                InitPathSphere(Vec);
+            }
         }
     }
     Vector2Int VerifyVoisin(Vector2Int V2, bool suc)
@@ -135,6 +166,9 @@ public class PathScript : MonoBehaviour
                 return V2a;
             }
         }
+        if (BestPick) PickBestVoisin(ref Voisin);
+        if (RemoveWorstPick) DeleteWorstVoisin(ref Voisin);
+        if (TwoBestPick) TwoPickBestVoisin(ref Voisin);
         Vector2Int V2b = Voisin[Random.Range(0, Voisin.Count)];
         while (GetCout(V2) == 99999) V2b = Voisin[Random.Range(0, Voisin.Count)];
         return V2b;
@@ -150,10 +184,27 @@ public class PathScript : MonoBehaviour
                 return V2a;
             }
         }
-        if(Voisin.Count == 0)
+        if (BestPick) PickBestVoisin(ref Voisin);
+        if (RemoveWorstPick) DeleteWorstVoisin(ref Voisin);
+        if (TwoBestPick) TwoPickBestVoisin(ref Voisin);
+        Vector2Int V2b = Voisin[Random.Range(0, Voisin.Count)];
+        while (GetCout(V2) == 99999) V2b = Voisin[Random.Range(0, Voisin.Count)];
+        return V2b;
+    }
+    Vector2Int VerifySemiBestVoisin(Vector2Int V2, Vector2Int V2e, ref bool suc)
+    {
+        List<Vector2Int> Voisin = GetSemiBestVoisins(V2, V2e);
+        foreach (Vector2Int V2a in Voisin)
         {
-            Debug.Log("v Error");
+            if (V2a.x == End.x && V2a.y == End.y)
+            {
+                suc = true;
+                return V2a;
+            }
         }
+        if (BestPick) PickBestVoisin(ref Voisin);
+        if (RemoveWorstPick) DeleteWorstVoisin(ref Voisin);
+        if (TwoBestPick) TwoPickBestVoisin(ref Voisin);
         Vector2Int V2b = Voisin[Random.Range(0, Voisin.Count)];
         while (GetCout(V2) == 99999) V2b = Voisin[Random.Range(0, Voisin.Count)];
         return V2b;
@@ -161,101 +212,469 @@ public class PathScript : MonoBehaviour
     List<Vector2Int> GetVoisins(Vector2Int V2)
     {
         List<Vector2Int> V2t = new List<Vector2Int>();
-        // Voisin Nord
-        V2t.Add(new Vector2Int(V2.x, V2.y + 1));
-        // Voisin Nord Est
-        V2t.Add(new Vector2Int(V2.x - 1, V2.y));
-        // Voisin Nord Ouest
-        V2t.Add(new Vector2Int(V2.x + 1, V2.y));
-        // Voisin Sud
-        V2t.Add(new Vector2Int(V2.x, V2.y - 1));
-        // Voisin Sud Est
-        V2t.Add(new Vector2Int(V2.x - 1, V2.y - 1));
-        // Voisin Sud Ouest
-        V2t.Add(new Vector2Int(V2.x + 1, V2.y - 1));
+        if (V2.x % 2 == 0)
+        {
+            // Voisin Nord
+            V2t.Add(new Vector2Int(V2.x, V2.y + 1));
+            // Voisin Nord Est
+            V2t.Add(new Vector2Int(V2.x - 1, V2.y));
+            // Voisin Nord Ouest
+            V2t.Add(new Vector2Int(V2.x + 1, V2.y));
+            // Voisin Sud
+            V2t.Add(new Vector2Int(V2.x, V2.y - 1));
+            // Voisin Sud Est
+            V2t.Add(new Vector2Int(V2.x - 1, V2.y - 1));
+            // Voisin Sud Ouest
+            V2t.Add(new Vector2Int(V2.x + 1, V2.y - 1));
+        }
+        else
+        {
+            // Voisin Nord
+            V2t.Add(new Vector2Int(V2.x, V2.y + 1));
+            // Voisin Nord Est
+            V2t.Add(new Vector2Int(V2.x - 1, V2.y + 1));
+            // Voisin Nord Ouest
+            V2t.Add(new Vector2Int(V2.x + 1, V2.y + 1));
+            // Voisin Sud
+            V2t.Add(new Vector2Int(V2.x, V2.y - 1));
+            // Voisin Sud Est
+            V2t.Add(new Vector2Int(V2.x - 1, V2.y));
+            // Voisin Sud Ouest
+            V2t.Add(new Vector2Int(V2.x + 1, V2.y));
+        }
         return V2t;
     }
     List<Vector2Int> GetBestVoisins(Vector2Int V2s, Vector2Int V2e)
     {
         List<Vector2Int> V2t = new List<Vector2Int>();
-        if (V2e.y > V2s.y)
+        if (V2s.x % 2 == 0)
         {
-            if (V2e.x > V2s.x)
+            if (V2e.y > V2s.y)
             {
-                // Voisin Nord
-                V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
-                // Voisin Nord Ouest
-                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                // Voisin Sud Ouest
-                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                }
+                else
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
             }
-            else if (V2e.x < V2s.x)
+            else if (V2e.y < V2s.y)
             {
-                // Voisin Nord
-                V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
-                // Voisin Nord Est
-                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                // Voisin Sud Est
-                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                }
+                else
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                }
             }
             else
             {
-                // Voisin Nord
-                V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
-                // Voisin Nord Est
-                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                // Voisin Nord Ouest
-                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-            }
-        }
-        else if (V2e.y < V2s.y)
-        {
-            if (V2e.x > V2s.x)
-            {
-                // Voisin Sud
-                V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
-                // Voisin Nord Ouest
-                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                // Voisin Sud Ouest
-                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
-            }
-            else if (V2e.x < V2s.x)
-            {
-                // Voisin Sud
-                V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
-                // Voisin Nord Est
-                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                // Voisin Sud Est
-                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
-            }
-            else
-            {
-                // Voisin Sud
-                V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
-                // Voisin Sud Est
-                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
-                // Voisin Sud Ouest
-                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                }
             }
         }
         else
         {
-            if (V2e.x > V2s.x)
+            if (V2e.y > V2s.y)
             {
-                // Voisin Nord Ouest
-                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
-                // Voisin Sud Ouest
-                V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                }
+                else
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
+                }
             }
-            else if (V2e.x < V2s.x)
+            else if (V2e.y < V2s.y)
             {
-                // Voisin Nord Est
-                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
-                // Voisin Sud Est
-                V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                }
+                else
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
+            }
+            else
+            {
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                }
             }
         }
         return V2t;
+    }
+    List<Vector2Int> GetSemiBestVoisins(Vector2Int V2s, Vector2Int V2e)
+    {
+        List<Vector2Int> V2t = new List<Vector2Int>();
+        if (V2s.x % 2 == 0)
+        {
+            if (V2e.y > V2s.y)
+            {
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                }
+                else
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
+            }
+            else if (V2e.y < V2s.y)
+            {
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                }
+                else
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                }
+            }
+            else
+            {
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y - 1));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y - 1));
+                }
+            }
+        }
+        else
+        {
+            if (V2e.y > V2s.y)
+            {
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                }
+                else
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
+                }
+            }
+            else if (V2e.y < V2s.y)
+            {
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                }
+                else
+                {
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
+            }
+            else
+            {
+                if (V2e.x > V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y + 1));
+                    // Voisin Sud Ouest
+                    V2t.Add(new Vector2Int(V2s.x + 1, V2s.y));
+                }
+                else if (V2e.x < V2s.x)
+                {
+                    // Voisin Nord
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y + 1));
+                    // Voisin Sud
+                    V2t.Add(new Vector2Int(V2s.x, V2s.y - 1));
+                    // Voisin Nord Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y + 1));
+                    // Voisin Sud Est
+                    V2t.Add(new Vector2Int(V2s.x - 1, V2s.y));
+                }
+            }
+        }
+        return V2t;
+    }
+    void DeleteWorstVoisin(ref List<Vector2Int> LV2)
+    {
+        if (LV2.Count < 2) return;
+        int worst = GetCout(LV2[0]);
+        int worstid = 0;
+        for (int cpt = 1; cpt < LV2.Count; cpt++)
+        {
+            if (worst < GetCout(LV2[cpt]))
+            {
+                worst = GetCout(LV2[cpt]);
+                worstid = cpt;
+            }
+            else if (worst == GetCout(LV2[cpt]))
+            {
+                int rnd = Random.Range(0, 2);
+                if (rnd == 0)
+                {
+                    worst = GetCout(LV2[cpt]);
+                    worstid = cpt;
+                }
+            }
+        }
+        LV2.RemoveAt(worstid);
+    }
+    void PickBestVoisin(ref List<Vector2Int> LV2)
+    {
+        if (LV2.Count < 2) return;
+        int best = GetCout(LV2[0]);
+        Vector2Int bestid = LV2[0];
+        for (int cpt = 1; cpt < LV2.Count; cpt++)
+        {
+            if (best > GetCout(LV2[cpt]))
+            {
+                best = GetCout(LV2[cpt]);
+                bestid = LV2[cpt];
+            }
+            else if(best == GetCout(LV2[cpt]))
+            {
+                int rnd = Random.Range(0, 2);
+                if(rnd == 0)
+                {
+                    best = GetCout(LV2[cpt]);
+                    bestid = LV2[cpt];
+                }
+            }
+        }
+        LV2.Clear();
+        LV2.Add(bestid);
+    }
+    void TwoPickBestVoisin(ref List<Vector2Int> LV2)
+    {
+        if (LV2.Count < 3) return;
+        int best = GetCout(LV2[0]);
+        Vector2Int bestid1 = LV2[0];
+        for (int cpt = 1; cpt < LV2.Count; cpt++)
+        {
+            if (best > GetCout(LV2[cpt]))
+            {
+                best = GetCout(LV2[cpt]);
+                bestid1 = LV2[cpt];
+            }
+        }
+        LV2.Remove(bestid1);
+        best = GetCout(LV2[0]);
+        Vector2Int bestid2 = LV2[0];
+        for (int cpt = 1; cpt < LV2.Count; cpt++)
+        {
+            if (best > GetCout(LV2[cpt]))
+            {
+                best = GetCout(LV2[cpt]);
+                bestid2 = LV2[cpt];
+            }
+            else if (best == GetCout(LV2[cpt]))
+            {
+                int rnd = Random.Range(0, 2);
+                if (rnd == 0)
+                {
+                    best = GetCout(LV2[cpt]);
+                    bestid2 = LV2[cpt];
+                }
+            }
+        }
+        LV2.Clear();
+        LV2.Add(bestid1);
+        LV2.Add(bestid2);
     }
     int GetCout(Vector2Int V2)
     {
@@ -303,6 +722,21 @@ public class PathScript : MonoBehaviour
         }
         GoPath.transform.position = new Vector3(PosX, PosY, 10 * this.GetComponent<GridState>().GetScaleZ(V2));
         GoPath.transform.localScale = new Vector3(5, 5, 5);
-        this.GetComponent<GridState>().SetFieldParent(GoPath);
+        GoPath.transform.SetParent(SpheresPath);
+    }
+    public void DeleteSpheres()
+    {
+        if (Spheres.childCount > 0) foreach (Transform child in Spheres) GameObject.Destroy(child.gameObject);
+        ActualBestScore = -600;
+        ActualBestPath = new List<Vector2Int>();
+    }
+    public void DeletePaths()
+    {
+        if (SpheresPath.childCount > 0) foreach (Transform child in SpheresPath) GameObject.Destroy(child.gameObject);
+    }
+    public void DeleteAll()
+    {
+        DeleteSpheres();
+        DeletePaths();
     }
 }
