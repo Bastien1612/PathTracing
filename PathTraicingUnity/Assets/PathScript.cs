@@ -74,7 +74,6 @@ public class PathScript : MonoBehaviour
     }
     public void LaunchGame()
     {
-        Debug.Log("0A");
         // Creations chemins
         List<List<Vector2Int>> AllPath = new List<List<Vector2Int>>();
         List<int> AllCost = new List<int>();
@@ -85,13 +84,15 @@ public class PathScript : MonoBehaviour
             int Cost = 0;
             bool Success = false;
 
-            Vector2Int ActualPos = VerifyVoisin(Start, Success);
+            //Vector2Int ActualPos = VerifyVoisin(Start, Success);
+            Vector2Int ActualPos = VerifyBestVoisin(Start, End, Success);
             Cost += GetCout(ActualPos);
             for (int cptb = 0; cptb < MaxParcours; cptb++)
             {
                 if (Success) break;
                 Path.Add(ActualPos);
-                ActualPos = VerifyVoisin(ActualPos, Success);
+                //ActualPos = VerifyVoisin(ActualPos, Success);
+                ActualPos = VerifyBestVoisin(ActualPos, End, Success);
                 Cost += GetCout(ActualPos);
             }
             if (Success)
@@ -147,6 +148,10 @@ public class PathScript : MonoBehaviour
                 suc = true;
                 return V2a;
             }
+        }
+        if(Voisin.Count == 0)
+        {
+            Debug.Log("v Error");
         }
         Vector2Int V2b = Voisin[Random.Range(0, Voisin.Count)];
         while (GetCout(V2) == 99999) V2b = Voisin[Random.Range(0, Voisin.Count)];
