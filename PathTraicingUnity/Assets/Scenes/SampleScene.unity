@@ -354,3 +354,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f361e6c9bfc2369498ab7bee660a9f33, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Iteration: 10
+  MaxParcours: 20

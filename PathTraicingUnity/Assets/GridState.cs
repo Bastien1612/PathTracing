@@ -11,6 +11,7 @@ public class GridState : MonoBehaviour
     [SerializeField]
     private GameObject PrefabHexagon = null;
     private int[,] State = new int[1, 1];
+    private bool CanLaunch = false;
 
 
     void Start()
@@ -20,13 +21,22 @@ public class GridState : MonoBehaviour
     void Update()
     {
         if (Input.GetKeyDown(KeyCode.Space)) TotalInit();
-        if (Input.GetKeyDown(KeyCode.W)) this.GetComponent<PathScript>().InitGame();
-        if (Input.GetKeyDown(KeyCode.X)) this.GetComponent<PathScript>().LaunchGame();
+        if (Input.GetKeyDown(KeyCode.W))
+        {
+            this.GetComponent<PathScript>().InitGame();
+            CanLaunch = true;
+        }
+        if (Input.GetKeyDown(KeyCode.X) && CanLaunch)
+        {
+            this.GetComponent<PathScript>().LaunchGame();
+            CanLaunch = false;
+        }
     }
     void TotalInit()
     {
         InitState();
         InitField();
+        CanLaunch = false;
     }
     void InitState()
     {
@@ -124,6 +134,10 @@ public class GridState : MonoBehaviour
     {
         return State[x, y];
     }
+    public int GetStateValue(Vector2Int V2)
+    {
+        return State[V2.x, V2.y];
+    }
     public int GetSize()
     {
         return Size;
@@ -132,10 +146,10 @@ public class GridState : MonoBehaviour
     {
         Go.transform.SetParent(Field);
     }
-    public float GetScaleZ(int x, int y)
+    public float GetScaleZ(Vector2Int V2)
     {
-        if (State[x, y] == 4) return 1.3f;
-        else if (State[x, y] == 5) return 1.6f;
+        if (State[V2.x, V2.y] == 4) return 1.3f;
+        else if (State[V2.x, V2.y] == 5) return 1.6f;
         else return 1.0f;
     }
 }
